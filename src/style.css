@@ -1,0 +1,54 @@
+body { margin:0; background:#111; color:white; font-family:sans-serif; }
+h1 { text-align:center; margin:10px; }
+
+#container { height:100vh; }
+
+#container.connected {
+  display:flex;
+}
+
+#container.not-connected {
+  display: grid;
+  place-items: center;
+}
+
+#scenes, #actions { flex:1; padding:10px; display:flex; flex-wrap:wrap; overflow-y:auto; }
+
+#scenes {
+  flex-direction: column;
+  row-gap: 10px;
+  text-align: center;
+}
+
+#scenes .scenes-list {
+  display: flex;
+  flex-direction: column;
+  row-gap: 10px;
+}
+
+.connection-info {
+  font-size: 20px;
+  text-align: center;
+}
+
+button {
+  /* flex: 1 0 calc(50% - 10px); */
+  min-height: 60px;
+  font-size:1rem;
+  background:#333;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  padding:10px;
+}
+button:hover { background:#555; }
+
+button.active-scene {
+  background-color: #fff;
+  color: #333;
+}
+
+@media (min-width: 800px) {
+  button { font-size:1.2rem; min-height:80px; }
+}
