@@ -1,5 +1,7 @@
 import m from 'mithril';
-import { ObsClient, ObsClientEvent, ConnectionState } from './lib/ObsClient';
+import { ObsClient, ObsClientEvent, ConnectionState, DEFAULT_OBS_PORT } from './lib/ObsClient';
+
+const CONNECTION_DETAILS_KEY = 'connection-details';
 
 export class ObsControl {
     /**
@@ -7,23 +9,46 @@ export class ObsControl {
      */
     #obsClient;
 
+    #connectionDetails = {
+        hostname: window.location.hostname,
+        port: DEFAULT_OBS_PORT,
+        password: import.meta.env.VITE_OBS_PASSWORD
+    };
+
     #connecting = false;
     #connected = false;
 
     #scenes = [];
     #currentProgramSceneName = null;
 
-    async oninit() {
+    constructor() {
         this.onConnectionStateChanged = this.#onConnectionStateChanged.bind(this);
         this.onCurrentProgramSceneChanged = this.#onCurrentProgramSceneChanged.bind(this);
+    }
 
+    async oninit() {
+        this.#getConnectionDetailsFromPersistence();
         void this.#initiateConnection();
     }
 
+    #getConnectionDetailsFromPersistence() {
+        const connectionDetails = localStorage.getItem(CONNECTION_DETAILS_KEY);
+
+        if (connectionDetails == null) {
+            return;
+        }
+
+        this.#connectionDetails = JSON.parse(connectionDetails);
+    }
+
+    #persistConnectionDetails() {
+        const connectionDetails = JSON.stringify(this.#connectionDetails);
+
+        localStorage.setItem(CONNECTION_DETAILS_KEY, connectionDetails);
+    }
+
     async #initiateConnection() {
-        const ip = import.meta.env.VITE_OBS_IP;
-        const port = import.meta.env.VITE_OBS_PORT;
-        const password = import.meta.env.VITE_OBS_PASSWORD;
+        const { hostname, port, password } = this.#connectionDetails;
 
         this.#obsClient = new ObsClient();
 
@@ -33,7 +58,7 @@ export class ObsControl {
         this.#connecting = true;
         m.redraw();
         
-        await this.#obsClient.connect({ ip, port, password });
+        await this.#obsClient.connect({ hostname, port, password });
 
         this.#connecting = false;
         m.redraw();
@@ -81,14 +106,6 @@ export class ObsControl {
         this.#obsClient.destroy();
 
         this.#obsClient = null; // Release object reference
-
-        setTimeout(() => {
-            if (this.#connected || this.#connecting) {
-                return;
-            }
-
-            this.initiateConnection();
-        }, 1000);
     }
 
     /**
@@ -120,15 +137,100 @@ export class ObsControl {
         return buttons;
     }
 
+    #changeConnectionDetails(connectionDetails) {
+        for (const [key, value] of Object.entries(connectionDetails)) {
+            if (!(key in this.#connectionDetails)) {
+                console.error(`Not a valid key: ${key}. Skipped setting value`);
+                continue;
+            }
+
+            this.#connectionDetails[key] = value;
+        }
+
+        this.#persistConnectionDetails();
+    }
+
+    #resetConnectionDetails() {
+        this.#changeConnectionDetails({
+            hostname: window.location.hostname,
+            port: DEFAULT_OBS_PORT,
+        })
+    }
+
+    #getConnectionDetailsForm() {
+        const { hostname, port, password } = this.#connectionDetails;
+
+        return m('.connection-credentials', [
+            m('label', { key: 'host' }, [
+                'host',
+                m('input', {
+                    placeholder: window.location.hostname,
+                    value: hostname ?? '',
+                    onchange: (event) => {
+                        const hostname = event.target.value || window.location.hostname;
+
+                        this.#changeConnectionDetails({ hostname });
+                    }
+                })
+            ]),
+            m('label', { key: 'port' }, [
+                'port',
+                m('input', {
+                    type: 'number',
+                    size: 5,
+                    min: 0,
+                    max: 65535,
+                    placeholder: DEFAULT_OBS_PORT,
+                    value: port,
+                    onchange: (event) => {
+                        const port = event.target.value != null ? parseInt(event.target.value, 10) : 4455;
+
+                        this.#changeConnectionDetails({ port });
+                    }
+                })
+            ]),
+            m('label', { key: 'password' }, [
+                'password',
+                m('input', {
+                    type: 'password',
+                    value: password ?? '',
+                    onchange: (event) => {
+                        const password = event.target.value || null;
+
+                        this.#changeConnectionDetails({ password });
+                    }
+                })
+            ]),
+            m('button', {
+                key: 'connect-button',
+                type: 'submit',
+                onclick: (event) => {
+                    event.preventDefault();
+                    this.#initiateConnection();
+                }
+            }, 'CONNECT'),
+            m('button', {
+                key: 'reset-button',
+                type: 'reset',
+                onclick: (event) => {
+                    event.preventDefault();
+                    this.#resetConnectionDetails();
+                }
+            }, 'RESET')
+        ]);
+    }
+
     view() {
         if (!this.#connected) {
-            return m('#container.not-connected', [
+            return m(
+                '#container.not-connected',
+                this.#connecting ? [
                     m(
                         'h2',
                         { key: 'connection-info' },
-                        this.#connecting ? 'Conectando a OBS...' : 'Falló la conexión. Has abierto OBS?'
+                        'Conectando a OBS...'
                     )
-                ]
+                ] : this.#getConnectionDetailsForm()
             );
         }
 

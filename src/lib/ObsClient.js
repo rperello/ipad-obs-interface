@@ -1,6 +1,6 @@
 import { EventSubscription, OBSWebSocket } from 'obs-websocket-js';
 
-const DEFAULT_OBS_PORT = 4455;
+export const DEFAULT_OBS_PORT = 4455;
 
 export const ObsClientEvent = Object.freeze({
     connectionStateChanged: 'connectionStateChanged',
@@ -25,7 +25,7 @@ export class ObsClient extends EventTarget {
         this.onCurrentProgramSceneChanged = this.#onCurrentProgramSceneChanged.bind(this);
     }
 
-    async connect({ ip, port, password } = { port: DEFAULT_OBS_PORT }) {
+    async connect({ hostname, port, password } = { port: DEFAULT_OBS_PORT }) {
         this.dispatchEvent(new CustomEvent(ObsClientEvent.connectionStateChanged, {
             detail: {
                 connectionState: ConnectionState.Connecting
@@ -41,7 +41,7 @@ export class ObsClient extends EventTarget {
             const {
                 obsWebSocketVersion,
                 negotiatedRpcVersion
-            } = await this.#obs.connect(`ws://${ip}:${port}`, password, {
+            } = await this.#obs.connect(`ws://${hostname}:${port}`, password, {
                 eventSubscriptions: EventSubscription.Scenes
             });
 

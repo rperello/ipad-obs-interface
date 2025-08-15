@@ -31,9 +31,16 @@ h1 { text-align:center; margin:10px; }
   text-align: center;
 }
 
+.connection-credentials {
+  display: flex;
+  flex-direction: column;
+  row-gap: 10px;
+  align-items: start;
+}
+
 button {
   /* flex: 1 0 calc(50% - 10px); */
-  min-height: 60px;
+  /* min-height: 60px; */
   font-size:1rem;
   background:#333;
   color:white;
@@ -50,5 +57,14 @@ button.active-scene {
 }
 
 @media (min-width: 800px) {
-  button { font-size:1.2rem; min-height:80px; }
+  button {
+    font-size: 1.2rem;
+    /* min-height:80px; */
+  }
+}
+
+label {
+  input {
+    margin: 0 10px;
+  }
 }
